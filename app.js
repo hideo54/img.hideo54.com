@@ -1,4 +1,5 @@
 const Koa = require('koa');
+const koaBody = require('koa-body')({multipart: true});
 const app = new Koa();
 const route = require('koa-route');
 const fs = require('fs');
@@ -9,6 +10,23 @@ const args = process.argv.slice(2);
 const rootDir = args[0];
 const port = args[1];
 
+const upload = route.post('/upload', async (ctx)=>{
+  const file = ctx.request.files.uploadFile;
+  const randFileName = Math.random().toString()+".png";
+  const reader = fs.createReadStream(file.path);
+  const stream = fs.createWriteStream(path.join(rootDir, randFileName));
+  console.log(ctx.path);
+  console.log(`file path: ${file.path}`);
+
+  reader.pipe(stream);
+  console.log('uploading %s -> %s', file.name, stream.path);
+
+  ctx.status = 200;
+  ctx.body = randFileName;
+});
+
+app.use(koaBody);
+app.use(upload);
 app.use(async (ctx, next) => {
     const elements = path.parse(ctx.path);
     // Returns:
@@ -20,7 +38,7 @@ app.use(async (ctx, next) => {
     console.log(ctx.path);
     if (elements.ext === '.png') {
         const splitted = elements.name.split('-')
-        const originalFilename = `${rootDir}${elements.dir}/${splitted[0]}.png`;
+        const originalFilename = `${rootDir}${elements.dir}${splitted[0]}.png`;
         const options = splitted.slice(1);
         console.log(originalFilename);
         try {
